@@ -1,7 +1,7 @@
 import Stores from '@/components/stores';
 
 export default async function Home() {
-  const res = await fetch('http://localhost:3000/api/stores').then((res) => {
+  const res = await fetch(`${process.env.API_HOST}/api/stores`).then((res) => {
     if (res.ok) {
       return res.json()
     }
