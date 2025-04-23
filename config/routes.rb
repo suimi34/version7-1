@@ -9,4 +9,8 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   root "stores#index"
+
+  namespace :api do
+    resources :stores, only: %i[index]
+  end
 end
