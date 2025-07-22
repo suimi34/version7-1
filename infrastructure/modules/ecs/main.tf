@@ -1,3 +1,112 @@
+# Security Group for ALB
+resource "aws_security_group" "alb" {
+  name        = "${var.project_name}-alb-sg"
+  description = "Security group for ALB"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-alb-sg"
+  })
+}
+
+# Security Group for ECS
+resource "aws_security_group" "ecs" {
+  name        = "${var.project_name}-ecs-sg"
+  description = "Security group for ECS tasks"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-ecs-sg"
+  })
+}
+
+# Application Load Balancer
+resource "aws_lb" "main" {
+  name               = "${var.project_name}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = var.public_subnet_ids
+
+  enable_deletion_protection = false
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-alb"
+  })
+}
+
+# Target Group for ALB
+resource "aws_lb_target_group" "main" {
+  name        = "${var.project_name}-tg"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = var.health_check_path
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 2
+  }
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-tg"
+  })
+}
+
+# ALB Listener
+resource "aws_lb_listener" "main" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.main.arn
+  }
+}
+
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "${var.project_name}-cluster"
@@ -7,9 +116,9 @@ resource "aws_ecs_cluster" "main" {
     value = "enabled"
   }
 
-  tags = {
+  tags = merge(var.common_tags, {
     Name = "${var.project_name}-cluster"
-  }
+  })
 }
 
 # CloudWatch Log Groups
@@ -17,20 +126,19 @@ resource "aws_cloudwatch_log_group" "rails" {
   name              = "/ecs/${var.project_name}/rails"
   retention_in_days = 30
 
-  tags = {
+  tags = merge(var.common_tags, {
     Name = "${var.project_name}-rails-logs"
-  }
+  })
 }
 
 resource "aws_cloudwatch_log_group" "nginx" {
   name              = "/ecs/${var.project_name}/nginx"
   retention_in_days = 30
 
-  tags = {
+  tags = merge(var.common_tags, {
     Name = "${var.project_name}-nginx-logs"
-  }
+  })
 }
-
 
 # ECS Task Execution Role
 resource "aws_iam_role" "ecs_task_execution_role" {
@@ -48,6 +156,8 @@ resource "aws_iam_role" "ecs_task_execution_role" {
       }
     ]
   })
+
+  tags = var.common_tags
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
@@ -55,13 +165,10 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# ECR read-only access for ECS task execution role
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_ecr_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
-
-
 
 # ECS Task Definition
 resource "aws_ecs_task_definition" "main" {
@@ -97,7 +204,7 @@ resource "aws_ecs_task_definition" "main" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost/health || exit 1"]
+        command     = ["CMD-SHELL", "curl -f http://localhost${var.health_check_path} || exit 1"]
         interval    = 60
         timeout     = 10
         retries     = 10
@@ -113,7 +220,7 @@ resource "aws_ecs_task_definition" "main" {
     },
     {
       name      = "rails"
-      image     = var.rails_image
+      image     = var.container_image
       essential = true
       cpu       = var.rails_cpu
       memory    = var.rails_memory
@@ -125,36 +232,10 @@ resource "aws_ecs_task_definition" "main" {
         }
       ]
 
-      environment = [
-        {
-          name  = "RAILS_ENV"
-          value = "production"
-        },
-        {
-          name  = "DB_HOST"
-          value = var.db_host
-        },
-        {
-          name  = "DB_PORT"
-          value = tostring(var.db_port)
-        },
-        {
-          name  = "DB_NAME"
-          value = var.db_name
-        },
-        {
-          name  = "DB_USER"
-          value = var.db_user
-        },
-        {
-          name  = "DB_PASS"
-          value = var.db_pass
-        },
-        {
-          name  = "SECRET_KEY_BASE"
-          value = var.secret_key_base
-        }
-      ]
+      environment = [for key, value in var.environment_variables : {
+        name  = key
+        value = value
+      }]
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -175,9 +256,9 @@ resource "aws_ecs_task_definition" "main" {
     }
   ])
 
-  tags = {
+  tags = merge(var.common_tags, {
     Name = "${var.project_name}-task-definition"
-  }
+  })
 }
 
 # ECS Service
@@ -189,7 +270,7 @@ resource "aws_ecs_service" "main" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = aws_subnet.private[*].id
+    subnets          = var.private_subnet_ids
     security_groups  = [aws_security_group.ecs.id]
     assign_public_ip = false
   }
@@ -205,7 +286,7 @@ resource "aws_ecs_service" "main" {
     aws_iam_role_policy_attachment.ecs_task_execution_role_policy,
   ]
 
-  tags = {
+  tags = merge(var.common_tags, {
     Name = "${var.project_name}-service"
-  }
+  })
 }

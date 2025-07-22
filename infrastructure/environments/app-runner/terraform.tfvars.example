@@ -1,0 +1,40 @@
+# AWS Configuration
+aws_region = "ap-northeast-1"
+
+# Project Configuration
+project_name = "version7-1"
+environment  = "production"
+
+# Container Configuration
+repository_url  = "your-ecr-repository-url"
+repository_name = "version7-1/rails"
+image_tag       = "latest"
+
+# App Runner Configuration
+app_runner_cpu    = "256"
+app_runner_memory = "512"
+app_runner_port   = "3000"
+
+# Auto Scaling Configuration
+min_size = 1
+max_size = 1
+
+# Health Check
+health_check_path = "/up"
+
+# Database Configuration
+db_host = "your-db-host-url"
+db_port = 3306
+db_name = "ze580_version7_1"
+db_user = "ze580_version7_1"
+db_pass = ""
+
+# Rails Configuration
+rails_env       = "production"
+secret_key_base = ""
+
+# Additional Environment Variables (optional)
+additional_environment_variables = {
+  # Add any extra environment variables here
+  # EXAMPLE_VAR = "example_value"
+}
