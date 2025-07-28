@@ -1,15 +1,24 @@
+# AWS Configuration
 variable "aws_region" {
   description = "AWS region"
   type        = string
   default     = "ap-northeast-1"
 }
 
+# Project Configuration
 variable "project_name" {
   description = "Project name for resource naming"
   type        = string
   default     = "tf-version7-1"
 }
 
+variable "environment" {
+  description = "Environment name (dev, staging, prod)"
+  type        = string
+  default     = "production"
+}
+
+# Networking Configuration
 variable "vpc_cidr" {
   description = "CIDR block for VPC"
   type        = string
@@ -28,7 +37,30 @@ variable "private_subnet_cidrs" {
   default     = ["10.0.2.0/24", "10.0.3.0/24"]
 }
 
-# ECS Variables
+# Container Configuration
+variable "repository_url" {
+  description = "URL of the ECR repository"
+  type        = string
+}
+
+variable "image_tag" {
+  description = "Docker image tag to deploy"
+  type        = string
+  default     = "latest"
+}
+
+variable "nginx_image" {
+  description = "Docker image for Nginx"
+  type        = string
+}
+
+variable "health_check_path" {
+  description = "Health check path for load balancer"
+  type        = string
+  default     = "/health"
+}
+
+# ECS Task Configuration
 variable "task_cpu" {
   description = "CPU units for ECS task"
   type        = number
@@ -65,24 +97,13 @@ variable "nginx_memory" {
   default     = 256
 }
 
-
 variable "desired_count" {
   description = "Desired number of ECS tasks"
   type        = number
   default     = 1
 }
 
-variable "rails_image" {
-  description = "Docker image for Rails application"
-  type        = string
-}
-
-variable "nginx_image" {
-  description = "Docker image for Nginx"
-  type        = string
-}
-
-
+# Database Configuration
 variable "db_host" {
   description = "Database host for Rails application"
   type        = string
@@ -112,8 +133,15 @@ variable "db_pass" {
   sensitive   = true
 }
 
+# Rails Configuration
 variable "secret_key_base" {
   description = "Secret key base for Rails application"
   type        = string
   sensitive   = true
+}
+
+variable "rails_env" {
+  description = "Environment for Rails application"
+  type        = string
+  default     = "production"
 }

@@ -1,0 +1,39 @@
+# AWS Configuration
+aws_region = "ap-northeast-1"
+
+# Project Configuration
+project_name = "tf-version7-1"
+environment  = "production"
+
+# Networking Configuration
+vpc_cidr               = "10.0.0.0/16"
+public_subnet_cidrs    = ["10.0.1.0/24", "10.0.4.0/24"]
+private_subnet_cidrs   = ["10.0.2.0/24", "10.0.3.0/24"]
+
+# Container Configuration
+repository_url = "your-ecr-repository-url"
+image_tag      = "latest"
+nginx_image    = "your-ecr-nginx-repository-url"
+
+# ECS Configuration
+task_cpu      = 512
+task_memory   = 1024
+rails_cpu     = 256
+rails_memory  = 512
+nginx_cpu     = 256
+nginx_memory  = 512
+desired_count = 1
+
+# Health Check
+health_check_path = "/health"
+
+# Database Configuration
+db_host = "your-db-host-url"
+db_port = 3306
+db_name = "ze580_version7_1"
+db_user = "ze580_version7_1"
+db_pass = ""
+
+# Rails Configuration
+rails_env       = "production"
+secret_key_base = ""
