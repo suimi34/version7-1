@@ -12,5 +12,6 @@ Rails.application.routes.draw do
 
   namespace :api do
     resources :stores, only: %i[index]
+    post "line_bot/callback", to: "line_bot#callback"
   end
 end
