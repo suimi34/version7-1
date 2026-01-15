@@ -64,37 +64,31 @@ variable "health_check_path" {
 variable "task_cpu" {
   description = "CPU units for ECS task"
   type        = number
-  default     = 1024
 }
 
 variable "task_memory" {
   description = "Memory for ECS task"
   type        = number
-  default     = 1024
 }
 
 variable "rails_cpu" {
   description = "CPU units for Rails container"
   type        = number
-  default     = 512
 }
 
 variable "rails_memory" {
   description = "Memory for Rails container"
   type        = number
-  default     = 512
 }
 
 variable "nginx_cpu" {
   description = "CPU units for Nginx container"
   type        = number
-  default     = 256
 }
 
 variable "nginx_memory" {
   description = "Memory for Nginx container"
   type        = number
-  default     = 256
 }
 
 variable "desired_count" {
